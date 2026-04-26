@@ -1,20 +1,21 @@
 package parser
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-
-	"github.com/ledongthuc/pdf"
+	"os/exec"
+	"strings"
 )
 
-type PDFFile struct {
+type FileData struct {
 	Source  string
-	Page    int
+	Index   int
 	Total   int
 	Content string
 }
 
-func PDF(ctx context.Context, path string) (docs []PDFFile, err error) {
+func PDF(ctx context.Context, path string) ([]FileData, error) {
 	if path == "" {
 		return nil, fmt.Errorf("pdf: path is required")
 	}
@@ -22,46 +23,34 @@ func PDF(ctx context.Context, path string) (docs []PDFFile, err error) {
 		return nil, err
 	}
 
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("pdf: panic: %v", r)
-		}
-	}()
-
-	file, reader, err := pdf.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("pdf: pdf.Open: %w", err)
-	}
-	defer file.Close()
-
-	len := reader.NumPage()
-	if len <= 0 {
-		return nil, fmt.Errorf("pdf: empty")
+	cmd := exec.CommandContext(ctx, "pdftotext", "-layout", "-enc", "UTF-8", path, "-")
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("pdf: pdftotext: %w (stderr: %s)", err, strings.TrimSpace(stderr.String()))
 	}
 
-	docs = make([]PDFFile, 0, len)
-	for i := 1; i <= len; i++ {
+	pages := strings.Split(stdout.String(), "\f")
+	if n := len(pages); n > 0 && pages[n-1] == "" {
+		pages = pages[:n-1]
+	}
+	if len(pages) == 0 {
+		return nil, fmt.Errorf("pdf: %q empty", path)
+	}
+
+	total := len(pages)
+	docs := make([]FileData, 0, total)
+	for i, content := range pages {
 		if err := ctx.Err(); err != nil {
 			return docs, err
 		}
-
-		page := reader.Page(i)
-		if page.V.IsNull() {
-			continue
-		}
-
-		text, err := page.GetPlainText(nil)
-		if err != nil {
-			return docs, fmt.Errorf("pdf: page.GetPlainText (index: %d): %w", i, err)
-		}
-
-		docs = append(docs, PDFFile{
+		docs = append(docs, FileData{
 			Source:  path,
-			Page:    i,
-			Total:   len,
-			Content: text,
+			Index:   i + 1,
+			Total:   total,
+			Content: content,
 		})
 	}
-
 	return docs, nil
 }

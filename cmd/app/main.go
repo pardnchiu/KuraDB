@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -10,6 +9,9 @@ import (
 	"syscall"
 	"time"
 
+	goUtils_filesystem "github.com/pardnchiu/go-utils/filesystem"
+
+	"github.com/pardnchiu/AgenvoyRAG/internal/database"
 	"github.com/pardnchiu/AgenvoyRAG/internal/filesystem"
 )
 
@@ -38,26 +40,26 @@ func main() {
 	}
 
 	folderDir := filepath.Join(homeDir, binaryName)
-	info, err := os.Stat(folderDir)
-	switch {
-	case err == nil:
-		if !info.IsDir() {
-			slog.Error("path exists and is not a directory")
-			os.Exit(1)
-		}
-
-	case errors.Is(err, os.ErrNotExist):
-		if err := os.MkdirAll(folderDir, 0o755); err != nil {
-			slog.Error("mkdir failed",
-				slog.String("error", err.Error()))
-			os.Exit(1)
-		}
-
-	default:
-		slog.Error("os.Statd",
+	if err := goUtils_filesystem.CheckDir(folderDir, true); err != nil {
+		slog.Error("goUtils_filesystem.CheckDir",
 			slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+
+	dbDir := filepath.Join(homeDir, ".config", "Agenvoy", "rag")
+	if err := goUtils_filesystem.CheckDir(dbDir, true); err != nil {
+		slog.Error("goUtils_filesystem.CheckDir",
+			slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	st, err := database.Open(ctx, filepath.Join(dbDir, "data.db"))
+	if err != nil {
+		slog.Error("database.Open",
+			slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	defer st.Close()
 
 	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
@@ -72,7 +74,7 @@ func main() {
 			return
 
 		case <-ticker.C:
-			prev = filesystem.WalkFiles(ctx, folderDir, folderDir, prev)
+			prev = filesystem.WalkFiles(ctx, folderDir, folderDir, prev, st)
 		}
 	}
 }

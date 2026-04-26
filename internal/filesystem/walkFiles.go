@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pardnchiu/AgenvoyRAG/internal/database"
 	"github.com/pardnchiu/AgenvoyRAG/internal/filesystem/parser"
 )
 
@@ -18,7 +19,7 @@ type File struct {
 	Children *map[string]File
 }
 
-func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File) *map[string]File {
+func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File, st *database.DB) *map[string]File {
 	if err := ctx.Err(); err != nil {
 		return nil
 	}
@@ -68,28 +69,36 @@ func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File) *ma
 				slog.String("path", path))
 
 			if !data.IsDir {
-				switch strings.ToLower(filepath.Ext(entry.Name())) {
+				ext := strings.ToLower(filepath.Ext(entry.Name()))
+				var (
+					files []parser.FileData
+					err   error
+				)
+				switch ext {
 				case ".pdf":
-					docs, perr := parser.PDF(ctx, path)
-					if perr != nil {
-						slog.Warn("parsePDF",
+					files, err = parser.PDF(ctx, path)
+				default:
+					ext = ""
+				}
+				if ext != "" {
+					if err != nil {
+						slog.Warn("parser",
+							slog.String("error", err.Error()))
+					} else if perr := st.Save(ctx, path, files); perr != nil {
+						slog.Warn("store.Save",
 							slog.String("error", perr.Error()))
-						break
-					}
-					slog.Info("parsed pdf",
-						slog.String("path", path),
-						slog.Int("pages", len(docs)))
-					for e := range docs {
-						slog.Info("pdf page",
+					} else {
+						slog.Info("saved",
+							slog.String("ext", ext),
 							slog.String("path", path),
-							slog.String("content", docs[e].Content))
+							slog.Int("chunks", len(files)))
 					}
 				}
 			}
 		}
 
 		if entry.IsDir() {
-			data.Children = WalkFiles(ctx, root, path, prevChildren)
+			data.Children = WalkFiles(ctx, root, path, prevChildren, st)
 		}
 
 		result[entry.Name()] = data
