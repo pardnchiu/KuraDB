@@ -19,6 +19,7 @@ import (
 	"github.com/pardnchiu/AgenvoyRAG/internal/database"
 	"github.com/pardnchiu/AgenvoyRAG/internal/filesystem"
 	"github.com/pardnchiu/AgenvoyRAG/internal/openai"
+	"github.com/pardnchiu/AgenvoyRAG/internal/segmenter"
 	"github.com/pardnchiu/AgenvoyRAG/internal/vector"
 )
 
@@ -97,13 +98,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	seg, err := segmenter.New()
+	if err != nil {
+		slog.Error("segmenter.New",
+			slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
 	cache := vector.New()
 	if err := loadCache(ctx, db, cache); err != nil {
 		slog.Warn("loadCache",
 			slog.String("error", err.Error()))
 	}
 
+	qcache := openai.NewCache()
+
 	go runEmbedder(ctx, db, embedder, embedInterval, embedBatch)
+	go runHTTP(ctx, db, cache, embedder, qcache, seg)
 
 	recordPath := filepath.Join(baseDir, "record.json")
 
