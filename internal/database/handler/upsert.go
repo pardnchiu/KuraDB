@@ -45,10 +45,13 @@ INSERT INTO file_data (source, chunk, total, content, dismiss)
 VALUES (?, ?, ?, ?, FALSE)
 ON CONFLICT (source, chunk)
 DO UPDATE SET
-  total = excluded.total,
-  content = excluded.content,
-  dismiss = FALSE,
-  is_embed = CASE WHEN file_data.content = excluded.content THEN file_data.is_embed ELSE END,
+  total      = excluded.total,
+  content    = excluded.content,
+  dismiss    = FALSE,
+  embedding  = CASE WHEN file_data.content = excluded.content
+                    THEN file_data.embedding ELSE NULL  END,
+  is_embed   = CASE WHEN file_data.content = excluded.content
+                    THEN file_data.is_embed  ELSE FALSE END,
   updated_at = CURRENT_TIMESTAMP;`,
 			file.Source, file.Index, file.Total, file.Content,
 		); err != nil {

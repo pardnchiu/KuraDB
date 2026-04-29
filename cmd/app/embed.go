@@ -8,7 +8,27 @@ import (
 	"github.com/pardnchiu/AgenvoyRAG/internal/database"
 	databaseHandler "github.com/pardnchiu/AgenvoyRAG/internal/database/handler"
 	"github.com/pardnchiu/AgenvoyRAG/internal/openai"
+	"github.com/pardnchiu/AgenvoyRAG/internal/vector"
 )
+
+func loadCache(ctx context.Context, db *database.DB, cache *vector.Cache) error {
+	count := 0
+	err := databaseHandler.LoadEmbeding(db, ctx, func(id int64, blob []byte) error {
+		v, derr := openai.Decode(blob)
+		if derr != nil {
+			slog.Warn("openai.Decode",
+				slog.String("error", derr.Error()))
+			return nil
+		}
+		cache.Set(id, v)
+		count++
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func runEmbedder(
 	ctx context.Context,

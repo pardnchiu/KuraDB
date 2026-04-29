@@ -19,6 +19,7 @@ import (
 	"github.com/pardnchiu/AgenvoyRAG/internal/database"
 	"github.com/pardnchiu/AgenvoyRAG/internal/filesystem"
 	"github.com/pardnchiu/AgenvoyRAG/internal/openai"
+	"github.com/pardnchiu/AgenvoyRAG/internal/vector"
 )
 
 const (
@@ -81,13 +82,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	st, err := database.Open(ctx, filepath.Join(baseDir, "data.db"))
+	db, err := database.Open(ctx, filepath.Join(baseDir, "data.db"))
 	if err != nil {
 		slog.Error("database.Open",
 			slog.String("error", err.Error()))
 		os.Exit(1)
 	}
-	defer st.Close()
+	defer db.Close()
 
 	embedder, err := openai.New()
 	if err != nil {
@@ -96,7 +97,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	go runEmbedder(ctx, st, embedder, embedInterval, embedBatch)
+	cache := vector.New()
+	if err := loadCache(ctx, db, cache); err != nil {
+		slog.Warn("loadCache",
+			slog.String("error", err.Error()))
+	}
+
+	go runEmbedder(ctx, db, embedder, embedInterval, embedBatch)
 
 	recordPath := filepath.Join(baseDir, "record.json")
 
@@ -121,7 +128,7 @@ func main() {
 			return
 
 		case <-ticker.C:
-			prev = filesystem.WalkFiles(ctx, folderDir, folderDir, prev, st)
+			prev = filesystem.WalkFiles(ctx, folderDir, folderDir, prev, db)
 			if prev == nil {
 				continue
 			}
