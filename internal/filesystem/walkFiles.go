@@ -32,6 +32,10 @@ func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File, db 
 	}
 
 	result := make(map[string]File, len(entries))
+	present := make(map[string]struct{}, len(entries))
+	for _, e := range entries {
+		present[e.Name()] = struct{}{}
+	}
 
 	for _, entry := range entries {
 		if err := ctx.Err(); err != nil {
@@ -77,6 +81,10 @@ func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File, db 
 				switch ext {
 				case ".pdf":
 					files, err = parser.PDF(ctx, path)
+				case ".docx":
+					files, err = parser.DOCX(ctx, path)
+				case ".pptx":
+					files, err = parser.PPTX(ctx, path)
 				default:
 					ext = ""
 				}
