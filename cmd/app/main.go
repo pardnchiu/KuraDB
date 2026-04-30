@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -30,6 +31,29 @@ const (
 )
 
 func main() {
+	if len(os.Args) >= 2 {
+		switch os.Args[1] {
+		case "add":
+			cmdAdd(os.Args[2:])
+			return
+		case "list":
+			cmdList(os.Args[2:])
+			return
+		case "remove":
+			cmdRemove(os.Args[2:])
+			return
+		case "edit":
+			cmdEdit(os.Args[2:])
+			return
+		case "help", "-h", "--help":
+			printUsage(os.Stdout)
+			return
+		}
+	}
+	runServer()
+}
+
+func runServer() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	if err := ctx.Err(); err != nil {
 		slog.Info("shutdown before start", "reason", err)
@@ -49,22 +73,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		slog.Error("os.UserHomeDir",
-			slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-	if homeDir == "" {
-		slog.Error("home directory is empty")
-		os.Exit(1)
-	}
+	homeDir, configDir := mustConfigDir()
 
-	baseDir := filepath.Join(homeDir, ".config", "KuraDB", dbName)
+	baseDir := filepath.Join(configDir, dbName)
 	if err := goUtils_filesystem.CheckDir(baseDir, true); err != nil {
 		slog.Error("goUtils_filesystem.CheckDir",
 			slog.String("error", err.Error()))
 		os.Exit(1)
+	}
+
+	reg := database.New(filepath.Join(configDir, "db.json"))
+	if err := reg.AddIfMissing(dbName); err != nil {
+		slog.Warn("registry.AddIfMissing",
+			slog.String("error", err.Error()))
 	}
 
 	folderDir := filepath.Join(baseDir, "inbox")
@@ -113,11 +134,18 @@ func main() {
 
 	qcache := openai.NewCache()
 
-	go runEmbedder(ctx, db, embedder, embedInterval, embedBatch)
-	go runHTTP(ctx, db, cache, embedder, qcache, seg)
-
 	recordPath := filepath.Join(baseDir, "record.json")
 
+	go runEmbedder(ctx, db, embedder, embedInterval, embedBatch)
+	go runHTTP(ctx, dbName, db, cache, embedder, qcache, seg)
+	go runWatcher(ctx, folderDir, recordPath, db)
+
+	<-ctx.Done()
+	slog.Info("shutdown",
+		slog.String("reason", ctx.Err().Error()))
+}
+
+func runWatcher(ctx context.Context, folderDir, recordPath string, db *database.DB) {
 	var prev *map[string]filesystem.File
 	if snap, err := goUtils_filesystem.ReadJSON[map[string]filesystem.File](recordPath); err == nil {
 		prev = &snap
@@ -134,7 +162,7 @@ func main() {
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("shutdown",
+			slog.Info("watcher: shutdown",
 				slog.String("reason", ctx.Err().Error()))
 			return
 
@@ -154,6 +182,28 @@ func main() {
 			}()
 		}
 	}
+}
+
+func sanitizeDBName(s string) string {
+	return strings.Join(strings.Fields(s), "_")
+}
+
+func mustConfigDir() (homeDir, configDir string) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "os.UserHomeDir: %v\n", err)
+		os.Exit(1)
+	}
+	if homeDir == "" {
+		fmt.Fprintln(os.Stderr, "home directory is empty")
+		os.Exit(1)
+	}
+	configDir = filepath.Join(homeDir, ".config", "KuraDB")
+	if err := goUtils_filesystem.CheckDir(configDir, true); err != nil {
+		fmt.Fprintf(os.Stderr, "CheckDir %s: %v\n", configDir, err)
+		os.Exit(1)
+	}
+	return homeDir, configDir
 }
 
 func ensureSymlink(target, link string) error {
