@@ -12,6 +12,9 @@ import (
 //go:embed schema/file_data.sql
 var sqlSchemaFileData string
 
+//go:embed schema/query_cache.sql
+var sqlSchemaQueryCache string
+
 type DB struct {
 	DB *sql.DB
 }
@@ -55,7 +58,10 @@ func (db *DB) Close() {
 
 func (db *DB) migrate(ctx context.Context) error {
 	if _, err := db.DB.ExecContext(ctx, sqlSchemaFileData); err != nil {
-		return fmt.Errorf("database: migrate: %w", err)
+		return fmt.Errorf("database: migrate file_data: %w", err)
+	}
+	if _, err := db.DB.ExecContext(ctx, sqlSchemaQueryCache); err != nil {
+		return fmt.Errorf("database: migrate query_cache: %w", err)
 	}
 	return nil
 }

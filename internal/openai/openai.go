@@ -21,6 +21,8 @@ type OpenAI struct {
 	client *http.Client
 }
 
+func Dim() int { return dim }
+
 type Embedder interface {
 	EmbedBatch(ctx context.Context, texts []string) ([]Vector, error)
 }

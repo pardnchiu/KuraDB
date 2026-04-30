@@ -5,10 +5,20 @@ import "sync"
 type Cache struct {
 	mu       sync.RWMutex
 	cacheMap map[string][]float32
+	onSet    func(q string, v []float32)
 }
 
 func NewCache() *Cache {
 	return &Cache{cacheMap: make(map[string][]float32)}
+}
+
+func (c *Cache) OnSet(fn func(q string, v []float32)) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.onSet = fn
 }
 
 func (c *Cache) Get(q string) ([]float32, bool) {
@@ -22,6 +32,19 @@ func (c *Cache) Get(q string) ([]float32, bool) {
 }
 
 func (c *Cache) Set(q string, v []float32) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	c.cacheMap[q] = v
+	onSet := c.onSet
+	c.mu.Unlock()
+	if onSet != nil {
+		onSet(q, v)
+	}
+}
+
+func (c *Cache) Preload(q string, v []float32) {
 	if c == nil {
 		return
 	}

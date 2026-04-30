@@ -18,6 +18,7 @@ import (
 	goUtils_utils "github.com/pardnchiu/go-utils/utils"
 
 	"github.com/pardnchiu/KuraDB/internal/database"
+	databaseHandler "github.com/pardnchiu/KuraDB/internal/database/handler"
 	"github.com/pardnchiu/KuraDB/internal/filesystem"
 	"github.com/pardnchiu/KuraDB/internal/openai"
 	"github.com/pardnchiu/KuraDB/internal/segmenter"
@@ -133,6 +134,18 @@ func runServer() {
 	}
 
 	qcache := openai.NewCache()
+	loadQueryCache(ctx, db, qcache)
+	qcache.OnSet(func(q string, v []float32) {
+		go func() {
+			saveCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := databaseHandler.SaveQueryCache(db, saveCtx, q, openai.Encode(v)); err != nil {
+				slog.Warn("query_cache: save",
+					slog.String("query", q),
+					slog.String("error", err.Error()))
+			}
+		}()
+	})
 
 	recordPath := filepath.Join(baseDir, "record.json")
 

@@ -11,6 +11,36 @@ import (
 	"github.com/pardnchiu/KuraDB/internal/vector"
 )
 
+func loadQueryCache(ctx context.Context, db *database.DB, qcache *openai.Cache) {
+	expectedBytes := openai.Dim() * 4
+	loaded, skipped := 0, 0
+	err := databaseHandler.LoadQueryCache(db, ctx, func(q string, blob []byte) error {
+		if len(blob) != expectedBytes {
+			skipped++
+			return nil
+		}
+		v, derr := openai.Decode(blob)
+		if derr != nil {
+			skipped++
+			slog.Warn("query_cache: decode",
+				slog.String("query", q),
+				slog.String("error", derr.Error()))
+			return nil
+		}
+		qcache.Preload(q, v)
+		loaded++
+		return nil
+	})
+	if err != nil {
+		slog.Warn("query_cache: load",
+			slog.String("error", err.Error()))
+		return
+	}
+	slog.Info("query_cache: loaded",
+		slog.Int("loaded", loaded),
+		slog.Int("skipped", skipped))
+}
+
 func loadCache(ctx context.Context, db *database.DB, cache *vector.Cache) error {
 	count := 0
 	err := databaseHandler.LoadEmbeding(db, ctx, func(id int64, blob []byte) error {
