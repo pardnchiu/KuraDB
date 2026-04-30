@@ -86,6 +86,8 @@ func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File, db 
 					files, err = parser.DOCX(ctx, path)
 				case ".pptx":
 					files, err = parser.PPTX(ctx, path)
+				case ".txt", ".md":
+					files, err = parser.Markdown(ctx, path)
 				default:
 					ext = ""
 				}
