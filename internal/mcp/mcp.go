@@ -12,7 +12,7 @@ import (
 
 const (
 	serverName    = "kuradb"
-	serverVersion = "0.3.1"
+	serverVersion = "0.5.1"
 
 	instructions = `KuraDB is a read-only retrieval source over local file collections ("db"), each backed by a watched folder
 of static files the user put there: notes, documents, specs, reference material.

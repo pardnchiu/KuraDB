@@ -12,13 +12,15 @@ import (
 	"github.com/agenvoy/kuradb/internal/openai"
 )
 
-func Router(reg *database.Registry, dbs map[string]*database.DB, embedder openai.Embedder, qCache *openai.Cache) *gin.Engine {
+func Router(reg *database.Registry, dbs map[string]*database.DB, embedder openai.Embedder, qCache *openai.Cache, remote bool) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
 	router.Use(gin.Recovery())
 
-	router.Any("/mcp", gin.WrapH(mcp.Handler(reg, dbs, embedder, qCache)))
+	if remote {
+		router.Any("/mcp", gin.WrapH(mcp.Handler(reg, dbs, embedder, qCache)))
+	}
 
 	api := router.Group("/api")
 	api.GET("/health", apiHandler.Health())

@@ -10,7 +10,8 @@ import (
 )
 
 type Config struct {
-	Port int `json:"port,omitempty"`
+	Port   int  `json:"port,omitempty"`
+	Remote bool `json:"remote,omitempty"`
 }
 
 func Path(configDir string) string {
@@ -41,6 +42,15 @@ func SetPort(configDir string, port int) error {
 		return err
 	}
 	c.Port = port
+	return write(configDir, c)
+}
+
+func SetRemote(configDir string, enabled bool) error {
+	c, err := Read(configDir)
+	if err != nil {
+		return err
+	}
+	c.Remote = enabled
 	return write(configDir, c)
 }
 

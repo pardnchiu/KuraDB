@@ -1,206 +1,181 @@
-# KuraDB - Documentation
+# kuradb - Documentation
 
 > Back to [README](../README.md)
 
 ## Prerequisites
 
-- Go 1.25 or higher
-- OpenAI API Key (for embedding vector generation)
-- macOS or Linux (relies on POSIX filesystem semantics)
+- Go 1.25.1 or higher
+- A C compiler with CGO enabled (required by `mattn/go-sqlite3`)
+- OpenAI API key (`text-embedding-3-small`, 512 dimensions)
+- macOS (APFS/HFS+) or Linux (ext4/xfs); Windows, SMB, NFS, and FUSE are unsupported
 
 ## Installation
+
+### From Source
+
+```bash
+git clone https://github.com/agenvoy/kuradb.git
+cd kuradb
+make build
+# outputs bin/kura
+```
+
+### Build and Install to /usr/local/bin
+
+```bash
+make app
+# stop old daemon → build → sudo move to /usr/local/bin/kura → start
+```
 
 ### Using go install
 
 ```bash
 go install github.com/agenvoy/kuradb/cmd/app@latest
-```
-
-### Build from Source
-
-```bash
-git clone https://github.com/pardnchiu/KuraDB.git
-cd KuraDB
-make build
-# binary output to bin/kura
-```
-
-### Using Makefile
-
-```bash
-# Build and start
-make app
-
-# Add a database
-make add name=my_docs
-
-# List registered databases
-make list
-
-# Remove a database
-make remove name=my_docs
-
-# Rename a database
-make edit old=my_docs new=my_archive
-
-# Pin/unpin the server port
-make port set 8080
-make port clear
-
-# Stop the running server
-make stop
+mv "$(go env GOPATH)/bin/app" "$(go env GOPATH)/bin/kura"
+# go install names the binary after the app directory; rename it to kura
 ```
 
 ## Configuration
 
-### Environment Variables
+### API Key
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `OPENAI_API_KEY` | Yes | OpenAI API key for the text-embedding-3-small model |
+| Name | Required | Description |
+|------|----------|-------------|
+| `OPENAI_API_KEY` | Yes | Resolved in order: system keychain (service `kuradb`) → environment variable; the daemon and `kura mcp` exit at startup without it |
 
-KuraDB reads `OPENAI_API_KEY` from the system keychain. Ensure it is set before starting.
+System keychain lookup order:
 
-### Config Directory
+| Platform | Order |
+|----------|-------|
+| macOS | `security find-generic-password -s kuradb -a OPENAI_API_KEY` → environment variable |
+| Linux | `secret-tool lookup service kuradb account OPENAI_API_KEY` → `~/.config/kuradb/.secrets` (`OPENAI_API_KEY=...`) → environment variable |
 
-All data is stored under `~/.config/kuradb/`:
+A value stored in the keychain takes precedence; the environment variable is ignored when one exists.
+
+### Config Directory `~/.config/kuradb/`
 
 | Path | Purpose |
 |------|---------|
-| `db.json` | Database registry (JSON) |
-| `config.json` | Server config (JSON) — currently only a pinned `port` |
-| `global.db` | Global SQLite (query cache) |
-| `{name}/data.db` | Per-database SQLite (file_data) |
-| `{name}/inbox/` | Watched directory — drop files here for auto-indexing |
-| `{name}/record.json` | Filesystem snapshot for change detection |
-| `endpoint` | Written with the HTTP server address |
-| `daemon.log` | Background server stdout/stderr |
+| `db.json` | Database registry (`db`, `createAt`) |
+| `config.json` | Server settings: `port` (fixed port), `remote` (mount `/mcp`) |
+| `global.db` | Global SQLite holding `query_cache` |
+| `{name}/data.db` | Per-database SQLite holding `file_data` |
+| `{name}/inbox/` | Watched directory |
+| `{name}/record.json` | Filesystem snapshot (size + mtime) |
+| `endpoint` | HTTP address written once the daemon is ready |
+| `runtime.uid` | Daemon PID and start time |
+| `daemon.log` | Daemon stdout / stderr |
 
-Each database gets a symlink at `~/Kura_{name}` → `~/.config/kuradb/{name}/inbox/` for easy drag-and-drop.
+Each database gets a home-directory symlink `~/Kura_{name}` → `~/.config/kuradb/{name}/inbox/`.
+
+### `config.json`
+
+```json
+{
+  "port": 8080,
+  "remote": true
+}
+```
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `port` | Unset → random in 10000–65535 (up to 10 tries) | Binds to `127.0.0.1` |
+| `remote` | `false` | When `true`, mounts `/mcp` on HTTP; read at startup, so changes require a restart |
 
 ## Usage
 
-### Start the Server
+### Basic: Create a Database and Start
 
 ```bash
-kura
-```
-
-`kura` forks itself into the background and returns immediately once the server is ready (10s timeout). On startup the server:
-1. Loads all registered databases
-2. Rebuilds the vector cache from SQLite
-3. Starts the file watcher (polls every 10 seconds)
-4. Starts the embedding scheduler (processes one batch every 5 seconds, up to 64 chunks per batch)
-5. Starts the HTTP API — on the pinned `port` from `config.json` if set, otherwise a random port — writing the address to `~/.config/kuradb/endpoint`
-
-### Manage Databases
-
-```bash
-# Add a database
 kura add my_docs
+# db added: my_docs
+#   dir:  ~/.config/kuradb/my_docs
+#   link: ~/Kura_my_docs
 
-# List all databases
-kura list
-
-# Rename
-kura edit my_docs my_archive
-
-# Remove (requires typing 'yes' to confirm)
-kura remove my_archive
-
-# Stop the running server
-kura stop
-
-# Pin the server to a fixed port (restarts the server)
-kura port set 8080
-
-# Unpin the port (takes effect on next manual restart)
-kura port clear
+kura
+# http://localhost:12345
 ```
 
-### Query API
+`kura` forks a background daemon, waits up to 10 seconds for `endpoint` to appear, and prints the address; on timeout it points to `daemon.log`. Restart the daemon after adding a database to load it.
 
-All endpoints are read-only GET.
-
-#### Health Check
+### Index Files
 
 ```bash
-curl "$(cat ~/.config/kuradb/endpoint)/api/health"
-# {"status":"ok"}
+cp spec.pdf notes.md ~/Kura_my_docs/
+# within 10s the watcher detects the change → parses into chunks → upserts into SQLite
+# every 5s the embedder takes up to 64 pending chunks → OpenAI → updates the vector cache
 ```
 
-#### List Databases
+| Type | Extensions | Handling |
+|------|------------|----------|
+| PDF | `.pdf` | go-pkg parser |
+| Word | `.docx` | go-pkg parser |
+| PowerPoint | `.pptx` | go-pkg parser |
+| Tabular | `.csv`, `.tsv`, `.xlsx` | First row as header, 5 rows per chunk (`[n] col=value, ...`) |
+| Text | Any other extension | Parsed as Markdown only if the first 8 KiB is valid UTF-8 with no NUL bytes |
+| Skipped | Images, media, archives, executables, fonts, database files, `.DS_Store`, etc. | Not indexed |
+
+Subdirectories are scanned recursively; when a file is removed, its chunks are marked `dismiss = TRUE` and drop out of search results.
+
+### Query the HTTP API
 
 ```bash
-curl "$(cat ~/.config/kuradb/endpoint)/api/list"
-# {"dbs":["my_docs"]}
+EP="$(cat ~/.config/kuradb/endpoint)"
+
+curl "$EP/api/health"
+# OK
+
+curl "$EP/api/list"
+# {"loaded":["my_docs"],"registered":[{"db":"my_docs","createAt":"2026-09-16T00:00:00Z"}]}
+
+curl -G "$EP/api/search" --data-urlencode "db=my_docs" --data-urlencode "q=what is RAG" --data-urlencode "limit=5"
 ```
 
-#### Search
-
-Runs keyword and semantic search concurrently and returns both result sets:
-
-```bash
-curl "$(cat ~/.config/kuradb/endpoint)/api/search?db=my_docs&q=what+is+RAG&limit=5"
-```
-
-| Parameter | Required | Default | Description |
-|-----------|----------|---------|-------------|
-| `db` | Yes | — | Target database name |
-| `q` | Yes | — | Query string |
-| `limit` | No | `10` | Max results (up to 100) |
-| `target` | No | both | `keyword` or `semantic` to run only one strategy |
-
-- **Keyword**: uses the gse Chinese tokenizer to split the query, then matches via SQLite `LIKE`
-- **Semantic**: uses OpenAI embeddings for vector similarity search
-
-Response format:
+Response:
 
 ```json
 {
   "keyword": [
-    {
-      "source": "/path/to/file.md",
-      "matches": [
-        {"chunk": 0, "content": "RAG stands for Retrieval-Augmented Generation..."}
-      ]
-    }
+    {"source": "/Users/me/.config/kuradb/my_docs/inbox/notes.md", "matches": [{"chunk": 1, "content": "RAG is retrieval-augmented generation..."}]}
   ],
   "semantic": [
-    {
-      "source": "/path/to/file.md",
-      "matches": [
-        {"chunk": 0, "content": "RAG stands for Retrieval-Augmented Generation..."}
-      ]
-    }
+    {"source": "/Users/me/.config/kuradb/my_docs/inbox/spec.pdf", "matches": [{"chunk": 3, "content": "..."}]}
   ]
 }
 ```
 
-Omitted `target` values are omitted from the response entirely (e.g. `target=keyword` returns only the `keyword` key).
-
-> `/api/semantic` and `/api/keyword` still work as aliases for `/api/search?target=semantic` and `/api/search?target=keyword`, but are deprecated and will be removed in v1.*.*.
-
-### Indexing Files
-
-Drop files into the watched directory for automatic indexing:
+Error handling:
 
 ```bash
-cp document.md ~/Kura_my_docs/
-# Within 10s: watcher detects change → parses and chunks → writes to SQLite
-# Within 5s: embedder picks up pending chunks → calls OpenAI embedding → updates vector cache
+curl -s -w "\n%{http_code}\n" "$EP/api/search?db=missing&q=x"
+# {"error":"\"missing\" not exist"}
+# 400
 ```
 
-Supported file formats:
+### Advanced: Fixed Port and Remote MCP
 
-| Format | Extension | Parser |
-|--------|-----------|--------|
-| Markdown / Plain text | `.md`, `.txt`, `.go`, `.py`, etc. | Markdown chunker |
-| PDF | `.pdf` | PDF parser |
-| Word | `.docx` | DOCX parser |
-| PowerPoint | `.pptx` | PPTX parser |
-| CSV / TSV | `.csv`, `.tsv` | Tabular parser |
-| Excel | `.xlsx` | XLSX tabular parser |
+```bash
+kura port set 8080      # writes config.json and restarts the daemon
+kura remote enable      # mounts HTTP /mcp; restarts the daemon if running
+kura remote disable
+kura port clear         # applies on the next manual restart
+kura stop               # SIGTERM, then SIGKILL after 5s
+```
+
+### Advanced: Connect an MCP Client over stdio
+
+```json
+{
+  "mcpServers": {
+    "kuradb": {
+      "command": "kura",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+`kura mcp` opens SQLite and loads the vector cache on its own, read-only, without the watcher or embedder; restart the MCP session to see content the daemon indexed afterward.
 
 ## CLI Reference
 
@@ -208,34 +183,63 @@ Supported file formats:
 
 | Command | Syntax | Description |
 |---------|--------|-------------|
-| `kura` | `kura` | Fork server into background, loading all registered databases |
-| `add` | `kura add <name>` | Register a new database, create directory and symlink |
-| `list` | `kura list` | List registered databases |
-| `remove` | `kura remove <name>` | Unregister and delete a database (interactive confirmation) |
-| `edit` | `kura edit <old> <new>` | Rename a database |
-| `stop` | `kura stop` | Stop the running background server |
-| `port` | `kura port set <port>` \| `kura port clear` | Pin/unpin the HTTP port in `config.json` (`set` restarts the server; `clear` takes effect on next manual restart) |
-| `help` | `kura help` | Show usage message |
+| (none) | `kura` | Start the background daemon and print the endpoint |
+| `add` | `kura add <name>` | Register a database and create its inbox and `~/Kura_{name}` link; whitespace in names becomes `_` |
+| `list` | `kura list` | List registered databases as `name<TAB>createAt` |
+| `remove` | `kura remove <name>` | Delete directory, link, and registry entry after typing `yes` |
+| `edit` | `kura edit <old> <new>` | Rename directory, link, and registry entry |
+| `stop` | `kura stop` | Stop the daemon |
+| `port` | `kura port set <port>` \| `kura port clear` | Pin or unpin the HTTP port |
+| `remote` | `kura remote enable` \| `kura remote disable` | Toggle HTTP `/mcp` |
+| `mcp` | `kura mcp` | Serve MCP over stdio |
+| `help` | `kura help` \| `-h` \| `--help` | Show usage |
 
-### Server Behavior
+### Makefile Targets
 
-| Behavior | Interval | Description |
-|----------|----------|-------------|
-| File watch polling | 10s | Scans inbox directory, compares file size and mtime for change detection |
-| Embedding schedule | 5s | Fetches `is_embed=FALSE` chunks from SQLite, batch-calls OpenAI |
-| Embedding batch size | 64 | Up to 64 chunks per batch |
-| HTTP port | pinned `port` from `config.json`, else 10000–65535 random | Random mode: up to 10 bind attempts; writes address to endpoint file on success |
+| Target | Description |
+|--------|-------------|
+| `make build` | `go build -o bin/kura ./cmd/app` |
+| `make app` | Stop → build → install to `/usr/local/bin/kura` → start |
+| `make stop` | Stop the daemon |
+| `make test` | `go test -v -count=1 ./...` |
+| `make add foo` / `make list` / `make remove foo` / `make edit old new` / `make port set 8080` / `make help` | Forward to the matching subcommand via `go run` |
 
-### Search Pipeline
+### HTTP Endpoints
 
-**Semantic search** uses a two-stage strategy:
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/health` | Returns plain text `OK` |
+| `GET` | `/api/list` | `{loaded, registered}` |
+| `GET` | `/api/search` | Parameters below |
+| `GET` | `/api/semantic`, `/api/keyword` | Equivalent to `target=semantic` / `target=keyword`; removed in v1 |
+| `ANY` | `/mcp` | Streamable HTTP MCP, mounted only when `remote: true` |
 
-1. **Source filtering**: ranks sources by cosine similarity of their source-level vectors (average of all chunk vectors for that source), selecting the top N most relevant sources
-2. **Chunk matching**: performs precise cosine calculation only on chunks within the filtered sources, returning top-K
+`/api/search` parameters:
 
-This design dramatically reduces computation on large datasets while maintaining search quality.
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `db` | Yes | — | Loaded database name |
+| `q` | Yes | — | Query string |
+| `limit` | No | `10` | 1–100; out-of-range values fall back to 10 |
+| `target` | No | Both in parallel | `keyword` or `semantic`; the skipped field is omitted from the response |
 
-**Keyword search** uses the gse Chinese tokenizer to split queries into keywords, then matches via SQLite `LIKE`, filtering out `dismiss=TRUE` deleted files.
+### MCP Tools
+
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `list_rag` | None | Returns `{loaded, registered}` |
+| `search_rag` | `db` (required), `q` (required), `mode` (`keyword` \| `semantic`, omit for both), `limit` (default 10, 1–100) | Returns `{keyword, semantic}` with the same shape as HTTP |
+
+### Search Behavior
+
+| Item | Value |
+|------|-------|
+| Keyword | gse Simplified Chinese dictionary + stopword filter, lowercased and deduplicated, OR-matched with `LOWER(content) LIKE`, ranked by matched-term count |
+| Semantic | Query vector looked up in the in-memory query cache (persisted in `global.db`); OpenAI is called only on a miss |
+| Source candidates | `clamp(sources / 20, 20, sources)` |
+| Similarity floor | Hits with cosine < 0.3 are cut |
+| Input truncation | Inputs over 8000 characters are truncated before embedding |
+| Soft delete | Both searches exclude `dismiss = TRUE` |
 
 ***
 

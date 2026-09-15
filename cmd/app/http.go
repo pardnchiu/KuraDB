@@ -67,7 +67,7 @@ func runHTTP(ctx context.Context, configDir string, reg *database.Registry, perD
 	}
 
 	srv := &http.Server{
-		Handler:           api.Router(reg, perDBs, embedder, qcache),
+		Handler:           api.Router(reg, perDBs, embedder, qcache, cfg.Remote),
 		ReadHeaderTimeout: httpReadHeaderTimeout,
 	}
 
@@ -87,7 +87,8 @@ func runHTTP(ctx context.Context, configDir string, reg *database.Registry, perD
 	}()
 
 	slog.Info("http server",
-		slog.String("url", url))
+		slog.String("url", url),
+		slog.Bool("remote_mcp", cfg.Remote))
 
 	if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("http: Serve",

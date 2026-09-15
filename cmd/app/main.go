@@ -55,6 +55,9 @@ func main() {
 		case "port":
 			cmdPort(os.Args[2:])
 			return
+		case "remote":
+			cmdRemote(os.Args[2:])
+			return
 		case "mcp":
 			cmdMCP()
 			return

@@ -44,7 +44,9 @@ func printUsage(w io.Writer) {
   kura stop                       stop the running server
   kura port set <port>            pin the server to a fixed port (restarts server)
   kura port clear                 unpin the port (takes effect on next manual restart)
-  kura mcp                        serve MCP over stdio, bridged to the running server
+  kura remote enable              serve MCP over HTTP at /mcp (restarts a running server)
+  kura remote disable             stop serving MCP over HTTP (default)
+  kura mcp                        serve MCP over stdio
   kura help                       show this message`)
 }
 
@@ -84,6 +86,42 @@ func cmdPort(args []string) {
 	default:
 		fmt.Fprintln(os.Stderr, "usage: kura port [set <port>|clear]")
 		os.Exit(2)
+	}
+}
+
+func cmdRemote(args []string) {
+	if len(args) < 1 {
+		fmt.Fprintln(os.Stderr, "usage: kura remote [enable|disable]")
+		os.Exit(2)
+	}
+
+	var enabled bool
+	switch args[0] {
+	case "enable":
+		enabled = true
+	case "disable":
+		enabled = false
+	default:
+		fmt.Fprintln(os.Stderr, "usage: kura remote [enable|disable]")
+		os.Exit(2)
+	}
+
+	_, configDir := mustConfigDir()
+
+	if err := config.SetRemote(configDir, enabled); err != nil {
+		fmt.Fprintf(os.Stderr, "remote: config.SetRemote: %v\n", err)
+		os.Exit(1)
+	}
+
+	if enabled {
+		fmt.Println("remote MCP enabled (/mcp)")
+	} else {
+		fmt.Println("remote MCP disabled")
+	}
+
+	// The route is mounted at startup, so only a live daemon needs replacing.
+	if r, err := runtime.Read(configDir); err == nil && r != nil && runtime.IsAlive(r.PID) {
+		restartServer(configDir)
 	}
 }
 
