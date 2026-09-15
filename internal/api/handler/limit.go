@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/agenvoy/kuradb/internal/search"
+	"github.com/pardnchiu/kuradb/internal/search"
 )
 
 func queryLimit(c *gin.Context) int {

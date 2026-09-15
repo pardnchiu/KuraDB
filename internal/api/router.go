@@ -6,10 +6,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	apiHandler "github.com/agenvoy/kuradb/internal/api/handler"
-	"github.com/agenvoy/kuradb/internal/database"
-	"github.com/agenvoy/kuradb/internal/mcp"
-	"github.com/agenvoy/kuradb/internal/openai"
+	apiHandler "github.com/pardnchiu/kuradb/internal/api/handler"
+	"github.com/pardnchiu/kuradb/internal/database"
+	"github.com/pardnchiu/kuradb/internal/mcp"
+	"github.com/pardnchiu/kuradb/internal/openai"
 )
 
 func Router(reg *database.Registry, dbs map[string]*database.DB, embedder openai.Embedder, qCache *openai.Cache, remote bool) *gin.Engine {

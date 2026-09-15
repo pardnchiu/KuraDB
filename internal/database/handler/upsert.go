@@ -6,7 +6,7 @@ import (
 
 	go_pkg_parser "github.com/pardnchiu/go-pkg/filesystem/parser"
 
-	"github.com/agenvoy/kuradb/internal/database"
+	"github.com/pardnchiu/kuradb/internal/database"
 )
 
 func Upsert(db *database.DB, ctx context.Context, source string, files []go_pkg_parser.Chunk) error {

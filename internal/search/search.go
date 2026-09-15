@@ -7,10 +7,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/agenvoy/kuradb/internal/database"
-	databaseHandler "github.com/agenvoy/kuradb/internal/database/handler"
-	"github.com/agenvoy/kuradb/internal/openai"
-	"github.com/agenvoy/kuradb/internal/segmenter"
+	"github.com/pardnchiu/kuradb/internal/database"
+	databaseHandler "github.com/pardnchiu/kuradb/internal/database/handler"
+	"github.com/pardnchiu/kuradb/internal/openai"
+	"github.com/pardnchiu/kuradb/internal/segmenter"
 )
 
 const (

@@ -6,9 +6,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/agenvoy/kuradb/internal/database"
-	"github.com/agenvoy/kuradb/internal/openai"
-	"github.com/agenvoy/kuradb/internal/search"
+	"github.com/pardnchiu/kuradb/internal/database"
+	"github.com/pardnchiu/kuradb/internal/openai"
+	"github.com/pardnchiu/kuradb/internal/search"
 )
 
 func Search(dbs map[string]*database.DB, embedder openai.Embedder, qCache *openai.Cache) gin.HandlerFunc {

@@ -10,8 +10,8 @@ import (
 
 	go_pkg_parser "github.com/pardnchiu/go-pkg/filesystem/parser"
 
-	"github.com/agenvoy/kuradb/internal/database"
-	databaseHandler "github.com/agenvoy/kuradb/internal/database/handler"
+	"github.com/pardnchiu/kuradb/internal/database"
+	databaseHandler "github.com/pardnchiu/kuradb/internal/database/handler"
 )
 
 type File struct {

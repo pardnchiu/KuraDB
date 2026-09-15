@@ -14,8 +14,8 @@
 ### 從原始碼建置
 
 ```bash
-git clone https://github.com/agenvoy/kuradb.git
-cd kuradb
+git clone https://github.com/pardnchiu/KuraDB.git
+cd KuraDB
 make build
 # 輸出 bin/kura
 ```
@@ -30,7 +30,7 @@ make app
 ### 使用 go install
 
 ```bash
-go install github.com/agenvoy/kuradb/cmd/app@latest
+go install github.com/pardnchiu/kuradb/cmd/app@latest
 mv "$(go env GOPATH)/bin/app" "$(go env GOPATH)/bin/kura"
 # go install 以目錄名 app 命名，需自行更名為 kura
 ```

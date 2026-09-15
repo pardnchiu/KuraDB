@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	databaseHandler "github.com/agenvoy/kuradb/internal/database/handler"
+	databaseHandler "github.com/pardnchiu/kuradb/internal/database/handler"
 )
 
 func TestSearchKeyword_Nominal(t *testing.T) {

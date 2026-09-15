@@ -8,8 +8,8 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/agenvoy/kuradb/releases"><img src="https://img.shields.io/github/v/tag/agenvoy/kuradb?include_prereleases&style=for-the-badge" alt="Release"></a>
-<a href="LICENSE"><img src="https://img.shields.io/github/license/agenvoy/kuradb?include_prereleases&style=for-the-badge" alt="License"></a>
+<a href="https://github.com/pardnchiu/KuraDB/releases"><img src="https://img.shields.io/github/v/tag/pardnchiu/KuraDB?include_prereleases&style=for-the-badge" alt="Release"></a>
+<a href="LICENSE"><img src="https://img.shields.io/github/license/pardnchiu/KuraDB?include_prereleases&style=for-the-badge" alt="License"></a>
 </p>
 
 ***
@@ -25,7 +25,7 @@
 
 ## Features
 
-> `git clone https://github.com/agenvoy/kuradb.git && cd kuradb && make app` · [Documentation](./doc/doc.md)
+> `git clone https://github.com/pardnchiu/KuraDB.git && cd KuraDB && make app` · [Documentation](./doc/doc.md)
 
 - **Drop-In Indexing** — Drop files into `~/Kura_{name}` and the watcher parses PDF, DOCX, PPTX, CSV, XLSX, and plain text, queues them for embedding, and soft-deletes removed files.
 - **Parallel Keyword + Semantic Search** — Each request runs gse-tokenized keyword matching and OpenAI embedding search concurrently, returning results grouped by source file.
@@ -56,10 +56,10 @@ This project is licensed under the [MIT LICENSE](LICENSE).
 
 ## Author
 
-Just [open an issue](https://github.com/agenvoy/kuradb/issues/new) to share an idea.
+Just [open an issue](https://github.com/pardnchiu/KuraDB/issues/new) to share an idea.
 
-<a href="https://github.com/agenvoy/kuradb/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=agenvoy/kuradb&cache_bust=2026-09-16" alt="kuradb contributors" />
+<a href="https://github.com/pardnchiu/KuraDB/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=pardnchiu/KuraDB&cache_bust=2026-09-16" alt="kuradb contributors" />
 </a>
 
 ***
