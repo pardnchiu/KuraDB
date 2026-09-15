@@ -3,7 +3,7 @@ package openai_test
 import (
 	"testing"
 
-	"github.com/agenvoy/kuradb/internal/openai"
+	"github.com/pardnchiu/kuradb/internal/openai"
 )
 
 func TestDim(t *testing.T) {

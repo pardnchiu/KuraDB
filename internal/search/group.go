@@ -1,7 +1,7 @@
 package search
 
 import (
-	databaseHandler "github.com/agenvoy/kuradb/internal/database/handler"
+	databaseHandler "github.com/pardnchiu/kuradb/internal/database/handler"
 )
 
 const (

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/agenvoy/kuradb/internal/database"
-	"github.com/agenvoy/kuradb/internal/openai"
-	"github.com/agenvoy/kuradb/internal/search"
+	"github.com/pardnchiu/kuradb/internal/database"
+	"github.com/pardnchiu/kuradb/internal/openai"
+	"github.com/pardnchiu/kuradb/internal/search"
 )
 
 type store struct {

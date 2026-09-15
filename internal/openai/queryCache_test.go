@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/agenvoy/kuradb/internal/openai"
+	"github.com/pardnchiu/kuradb/internal/openai"
 )
 
 func TestNewCache(t *testing.T) {

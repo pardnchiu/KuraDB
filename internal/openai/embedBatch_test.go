@@ -5,7 +5,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/agenvoy/kuradb/internal/openai"
+	"github.com/pardnchiu/kuradb/internal/openai"
 )
 
 // EmbedBatch requires a live OpenAI API endpoint and credentials, so only its

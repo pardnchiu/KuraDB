@@ -14,10 +14,10 @@ import (
 
 	go_pkg_filesystem "github.com/pardnchiu/go-pkg/filesystem"
 
-	"github.com/agenvoy/kuradb/internal/api"
-	"github.com/agenvoy/kuradb/internal/config"
-	"github.com/agenvoy/kuradb/internal/database"
-	"github.com/agenvoy/kuradb/internal/openai"
+	"github.com/pardnchiu/kuradb/internal/api"
+	"github.com/pardnchiu/kuradb/internal/config"
+	"github.com/pardnchiu/kuradb/internal/database"
+	"github.com/pardnchiu/kuradb/internal/openai"
 )
 
 const (

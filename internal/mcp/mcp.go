@@ -6,8 +6,8 @@ import (
 
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/agenvoy/kuradb/internal/database"
-	"github.com/agenvoy/kuradb/internal/openai"
+	"github.com/pardnchiu/kuradb/internal/database"
+	"github.com/pardnchiu/kuradb/internal/openai"
 )
 
 const (

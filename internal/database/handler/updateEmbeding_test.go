@@ -5,7 +5,7 @@ import (
 	"context"
 	"testing"
 
-	databaseHandler "github.com/agenvoy/kuradb/internal/database/handler"
+	databaseHandler "github.com/pardnchiu/kuradb/internal/database/handler"
 )
 
 func TestUpdateEmbedding_Nominal(t *testing.T) {

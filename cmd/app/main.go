@@ -16,13 +16,13 @@ import (
 	go_pkg_filesystem "github.com/pardnchiu/go-pkg/filesystem"
 	go_pkg_keychain "github.com/pardnchiu/go-pkg/filesystem/keychain"
 
-	"github.com/agenvoy/kuradb/internal/database"
-	databaseHandler "github.com/agenvoy/kuradb/internal/database/handler"
-	"github.com/agenvoy/kuradb/internal/filesystem"
-	"github.com/agenvoy/kuradb/internal/openai"
-	"github.com/agenvoy/kuradb/internal/runtime"
-	"github.com/agenvoy/kuradb/internal/segmenter"
-	"github.com/agenvoy/kuradb/internal/vector"
+	"github.com/pardnchiu/kuradb/internal/database"
+	databaseHandler "github.com/pardnchiu/kuradb/internal/database/handler"
+	"github.com/pardnchiu/kuradb/internal/filesystem"
+	"github.com/pardnchiu/kuradb/internal/openai"
+	"github.com/pardnchiu/kuradb/internal/runtime"
+	"github.com/pardnchiu/kuradb/internal/segmenter"
+	"github.com/pardnchiu/kuradb/internal/vector"
 )
 
 const (

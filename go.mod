@@ -1,4 +1,4 @@
-module github.com/agenvoy/kuradb
+module github.com/pardnchiu/kuradb
 
 go 1.25.1
 

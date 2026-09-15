@@ -8,8 +8,8 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/agenvoy/kuradb/releases"><img src="https://img.shields.io/github/v/tag/agenvoy/kuradb?include_prereleases&style=for-the-badge" alt="Release"></a>
-<a href="../LICENSE"><img src="https://img.shields.io/github/license/agenvoy/kuradb?include_prereleases&style=for-the-badge" alt="License"></a>
+<a href="https://github.com/pardnchiu/KuraDB/releases"><img src="https://img.shields.io/github/v/tag/pardnchiu/KuraDB?include_prereleases&style=for-the-badge" alt="Release"></a>
+<a href="../LICENSE"><img src="https://img.shields.io/github/license/pardnchiu/KuraDB?include_prereleases&style=for-the-badge" alt="License"></a>
 </p>
 
 ***
@@ -25,7 +25,7 @@
 
 ## 功能特點
 
-> `git clone https://github.com/agenvoy/kuradb.git && cd kuradb && make app` · [完整文件](./doc.zh.md)
+> `git clone https://github.com/pardnchiu/KuraDB.git && cd KuraDB && make app` · [完整文件](./doc.zh.md)
 
 - **拖放即索引** — 把檔案丟進 `~/Kura_{name}` 資料夾，watcher 自動解析 PDF／DOCX／PPTX／CSV／XLSX／純文字並排入 embedding，刪檔即軟刪除。
 - **關鍵字與語意並行搜尋** — 同一請求平行執行 gse 中文斷詞關鍵字比對與 OpenAI embedding 向量搜尋，結果依來源檔分組回傳。
@@ -56,10 +56,10 @@ graph TB
 
 ## Author
 
-Just [open an issue](https://github.com/agenvoy/kuradb/issues/new) to share an idea.
+Just [open an issue](https://github.com/pardnchiu/KuraDB/issues/new) to share an idea.
 
-<a href="https://github.com/agenvoy/kuradb/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=agenvoy/kuradb&cache_bust=2026-09-16" alt="kuradb contributors" />
+<a href="https://github.com/pardnchiu/KuraDB/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=pardnchiu/KuraDB&cache_bust=2026-09-16" alt="kuradb contributors" />
 </a>
 
 ***

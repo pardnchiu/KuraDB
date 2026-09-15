@@ -14,11 +14,11 @@ import (
 
 	go_pkg_keychain "github.com/pardnchiu/go-pkg/filesystem/keychain"
 
-	"github.com/agenvoy/kuradb/internal/database"
-	"github.com/agenvoy/kuradb/internal/mcp"
-	"github.com/agenvoy/kuradb/internal/openai"
-	"github.com/agenvoy/kuradb/internal/segmenter"
-	"github.com/agenvoy/kuradb/internal/vector"
+	"github.com/pardnchiu/kuradb/internal/database"
+	"github.com/pardnchiu/kuradb/internal/mcp"
+	"github.com/pardnchiu/kuradb/internal/openai"
+	"github.com/pardnchiu/kuradb/internal/segmenter"
+	"github.com/pardnchiu/kuradb/internal/vector"
 )
 
 func cmdMCP() {
