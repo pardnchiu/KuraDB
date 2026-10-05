@@ -27,8 +27,7 @@ type searchInput struct {
 }
 
 type searchOutput struct {
-	Keyword  []search.Group `json:"keyword,omitempty"`
-	Semantic []search.Group `json:"semantic,omitempty"`
+	Keyword []search.Group `json:"keyword,omitempty"`
 }
 
 func addTools(server *mcpsdk.Server, src *store) {
@@ -43,7 +42,7 @@ func addTools(server *mcpsdk.Server, src *store) {
 
 	mcpsdk.AddTool(server, &mcpsdk.Tool{
 		Name: "search_rag",
-		Description: `Search RAG knowledge base (keyword + semantic by default). mode=keyword for exact strings; mode=semantic for natural-language queries. Answer directly if results suffice.
+		Description: `Search RAG knowledge base by keyword. Answer directly if results suffice.
 Indexed files only — it holds no conversation history and no session memory.`,
 		InputSchema: searchSchema(),
 	}, func(ctx context.Context, _ *mcpsdk.CallToolRequest, in searchInput) (*mcpsdk.CallToolResult, searchOutput, error) {
@@ -58,8 +57,8 @@ func searchSchema() *jsonschema.Schema {
 		Properties: map[string]*jsonschema.Schema{
 			"mode": {
 				Type:        "string",
-				Description: "Narrow to a single search mode. Omit to run both keyword and semantic search together.",
-				Enum:        []any{search.TargetKeyword, search.TargetSemantic},
+				Description: "Search mode. Only keyword is supported; omit to use it.",
+				Enum:        []any{search.TargetKeyword},
 			},
 			"db": {
 				Type:        "string",

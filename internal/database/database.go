@@ -13,9 +13,6 @@ import (
 //go:embed schema/file_data.sql
 var sqlSchemaFileData string
 
-//go:embed schema/query_cache.sql
-var sqlSchemaQueryCache string
-
 const readPoolSize = 8
 
 type DB struct {
@@ -26,10 +23,6 @@ type DB struct {
 
 func OpenPerDB(ctx context.Context, path string) (*DB, error) {
 	return openWithSchemas(ctx, path, []string{sqlSchemaFileData})
-}
-
-func OpenGlobal(ctx context.Context, path string) (*DB, error) {
-	return openWithSchemas(ctx, path, []string{sqlSchemaQueryCache})
 }
 
 func openWithSchemas(ctx context.Context, path string, schemas []string) (*DB, error) {

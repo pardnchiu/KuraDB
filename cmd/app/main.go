@@ -14,21 +14,15 @@ import (
 	"time"
 
 	go_pkg_filesystem "github.com/pardnchiu/go-pkg/filesystem"
-	go_pkg_keychain "github.com/pardnchiu/go-pkg/filesystem/keychain"
 
 	"github.com/pardnchiu/kuradb/internal/database"
-	databaseHandler "github.com/pardnchiu/kuradb/internal/database/handler"
 	"github.com/pardnchiu/kuradb/internal/filesystem"
-	"github.com/pardnchiu/kuradb/internal/openai"
 	"github.com/pardnchiu/kuradb/internal/runtime"
 	"github.com/pardnchiu/kuradb/internal/segmenter"
-	"github.com/pardnchiu/kuradb/internal/vector"
 )
 
 const (
-	pollInterval  = 10 * time.Second
-	embedInterval = 5 * time.Second
-	embedBatch    = 64
+	pollInterval = 10 * time.Second
 )
 
 func main() {
@@ -135,41 +129,9 @@ func runServerDaemon() {
 		slog.Warn("runtime.Init", slog.String("error", err.Error()))
 	}
 
-	go_pkg_keychain.Init("kuradb", configDir)
-
 	reg := database.New(filepath.Join(configDir, "db.json"))
 
-	embedder, err := openai.New()
-	if err != nil {
-		slog.Error("openai.New",
-			slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-
-	globalDB, err := database.OpenGlobal(ctx, filepath.Join(configDir, "global.db"))
-	if err != nil {
-		slog.Error("database.OpenGlobal",
-			slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-	defer globalDB.Close()
-
-	qcache := openai.NewCache()
-	loadQueryCache(ctx, globalDB, qcache)
-	qcache.OnSet(func(q string, v []float32) {
-		go func() {
-			saveCtx, c := context.WithTimeout(context.Background(), 5*time.Second)
-			defer c()
-			if err := databaseHandler.SaveQueryCache(globalDB, saveCtx, q, openai.Encode(v)); err != nil {
-				slog.Warn("query_cache: save",
-					slog.String("query", q),
-					slog.String("error", err.Error()))
-			}
-		}()
-	})
-
 	segmenter.New()
-	vector.New()
 
 	perDBs := make(map[string]*database.DB)
 
@@ -215,28 +177,15 @@ func runServerDaemon() {
 		}
 		perDBs[entry.DB] = db
 
-		if err := vector.InitBucket(entry.DB); err != nil {
-			slog.Warn("vector.EnsureBucket",
-				slog.String("db", entry.DB),
-				slog.String("error", err.Error()))
-			continue
-		}
-		if err := loadCache(ctx, entry.DB, db); err != nil {
-			slog.Warn("loadCache",
-				slog.String("db", entry.DB),
-				slog.String("error", err.Error()))
-		}
-
 		recordPath := filepath.Join(baseDir, "record.json")
 
-		go runEmbedder(ctx, entry.DB, db, embedder, embedInterval, embedBatch)
 		go runWatcher(ctx, folderDir, recordPath, db)
 
 		slog.Info("db: ready",
 			slog.String("db", entry.DB))
 	}
 
-	go runHTTP(ctx, configDir, reg, perDBs, embedder, qcache)
+	go runHTTP(ctx, configDir, reg, perDBs)
 
 	<-ctx.Done()
 	slog.Info("shutdown",

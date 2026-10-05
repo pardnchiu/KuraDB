@@ -9,27 +9,25 @@ import (
 	apiHandler "github.com/pardnchiu/kuradb/internal/api/handler"
 	"github.com/pardnchiu/kuradb/internal/database"
 	"github.com/pardnchiu/kuradb/internal/mcp"
-	"github.com/pardnchiu/kuradb/internal/openai"
 )
 
-func Router(reg *database.Registry, dbs map[string]*database.DB, embedder openai.Embedder, qCache *openai.Cache, remote bool) *gin.Engine {
+func Router(reg *database.Registry, dbs map[string]*database.DB, remote bool) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
 	router.Use(gin.Recovery())
 
 	if remote {
-		router.Any("/mcp", gin.WrapH(mcp.Handler(reg, dbs, embedder, qCache)))
+		router.Any("/mcp", gin.WrapH(mcp.Handler(reg, dbs)))
 	}
 
 	api := router.Group("/api")
 	api.GET("/health", apiHandler.Health())
 	api.GET("/list", apiHandler.List(reg, dbs))
-	api.GET("/search", queryDB(dbs), withTarget(""), apiHandler.Search(dbs, embedder, qCache))
+	api.GET("/search", queryDB(dbs), withTarget(""), apiHandler.Search(dbs))
 
 	// * will deprecate in v1.*.*, keep this for ensuring Agenvoy won't break.
-	api.GET("/semantic", queryDB(dbs), withTarget("semantic"), apiHandler.Search(dbs, embedder, qCache))
-	api.GET("/keyword", queryDB(dbs), withTarget("keyword"), apiHandler.Search(dbs, embedder, qCache))
+	api.GET("/keyword", queryDB(dbs), withTarget("keyword"), apiHandler.Search(dbs))
 
 	return router
 }

@@ -5,22 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/pardnchiu/kuradb/internal/database"
 	databaseHandler "github.com/pardnchiu/kuradb/internal/database/handler"
-	"github.com/pardnchiu/kuradb/internal/openai"
 	"github.com/pardnchiu/kuradb/internal/segmenter"
 )
 
 const (
-	TargetKeyword  = "keyword"
-	TargetSemantic = "semantic"
+	TargetKeyword = "keyword"
 )
 
 var ErrInvalidArgument = errors.New("invalid argument")
 
-func Search(ctx context.Context, dbs map[string]*database.DB, embedder openai.Embedder, qCache *openai.Cache, name, q, target string, limit int) (map[string][]Group, error) {
+func Search(ctx context.Context, dbs map[string]*database.DB, name, q, target string, limit int) (map[string][]Group, error) {
 	db, ok := dbs[name]
 	if !ok {
 		return nil, fmt.Errorf("%w: %q not exist", ErrInvalidArgument, name)
@@ -33,55 +30,24 @@ func Search(ctx context.Context, dbs map[string]*database.DB, embedder openai.Em
 	}
 
 	target = strings.ToLower(target)
-	runKeyword := target == "" || target == TargetKeyword
-	runSemantic := target == "" || target == TargetSemantic
-	if !runKeyword && !runSemantic {
+	if target != "" && target != TargetKeyword {
 		return nil, fmt.Errorf("%w: unknown target %q", ErrInvalidArgument, target)
 	}
 
-	var (
-		keywordResults  []databaseHandler.FileRow
-		semanticResults []databaseHandler.FileRow
-		kwErr           error
-		semErr          error
-		wg              sync.WaitGroup
-	)
-
-	if runKeyword {
-		wg.Go(func() {
-			keywords, err := segmenter.Tokenize(q)
-			if err != nil {
-				kwErr = err
-				return
-			}
-			if len(keywords) == 0 {
-				return
-			}
-			keywordResults, kwErr = databaseHandler.SearchKeyword(db, ctx, keywords, limit)
-		})
+	keywords, err := segmenter.Tokenize(q)
+	if err != nil {
+		return nil, err
 	}
 
-	if runSemantic {
-		wg.Go(func() {
-			semanticResults, semErr = getSemantic(ctx, dbs, name, embedder, qCache, q, limit)
-		})
+	var rows []databaseHandler.FileRow
+	if len(keywords) > 0 {
+		rows, err = databaseHandler.SearchKeyword(db, ctx, keywords, limit)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	wg.Wait()
-
-	if kwErr != nil {
-		return nil, kwErr
-	}
-	if semErr != nil {
-		return nil, semErr
-	}
-
-	dic := make(map[string][]Group, 2)
-	if runKeyword {
-		dic[TargetKeyword] = group(keywordResults)
-	}
-	if runSemantic {
-		dic[TargetSemantic] = group(semanticResults)
-	}
-	return dic, nil
+	return map[string][]Group{
+		TargetKeyword: group(rows),
+	}, nil
 }

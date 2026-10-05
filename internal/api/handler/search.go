@@ -7,13 +7,12 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/pardnchiu/kuradb/internal/database"
-	"github.com/pardnchiu/kuradb/internal/openai"
 	"github.com/pardnchiu/kuradb/internal/search"
 )
 
-func Search(dbs map[string]*database.DB, embedder openai.Embedder, qCache *openai.Cache) gin.HandlerFunc {
+func Search(dbs map[string]*database.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		dic, err := search.Search(c.Request.Context(), dbs, embedder, qCache,
+		dic, err := search.Search(c.Request.Context(), dbs,
 			c.GetString("db"), c.Query("q"), c.GetString("target"), queryLimit(c))
 		if err != nil {
 			status := http.StatusInternalServerError

@@ -7,7 +7,6 @@ import (
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/pardnchiu/kuradb/internal/database"
-	"github.com/pardnchiu/kuradb/internal/openai"
 )
 
 const (
@@ -18,7 +17,7 @@ const (
 of static files the user put there: notes, documents, specs, reference material.
 
 Call list_rag when the target database name is unknown, then search_rag to retrieve file chunks from it.
-search_rag runs keyword matching and semantic vector similarity in parallel; results are chunks grouped by their source file.
+search_rag runs keyword matching; results are chunks grouped by their source file.
 Use it whenever an answer depends on the content of those files rather than on general knowledge.
 
 It stores nothing but the indexed files: no conversation history, no session memory, no user profile.
@@ -35,15 +34,15 @@ func newServer(src *store) *mcpsdk.Server {
 	return server
 }
 
-func Handler(reg *database.Registry, dbs map[string]*database.DB, embedder openai.Embedder, qCache *openai.Cache) http.Handler {
-	server := newServer(newStore(reg, dbs, embedder, qCache))
+func Handler(reg *database.Registry, dbs map[string]*database.DB) http.Handler {
+	server := newServer(newStore(reg, dbs))
 	return mcpsdk.NewStreamableHTTPHandler(
 		func(*http.Request) *mcpsdk.Server { return server },
 		nil,
 	)
 }
 
-func Run(ctx context.Context, reg *database.Registry, dbs map[string]*database.DB, embedder openai.Embedder, qCache *openai.Cache) error {
-	server := newServer(newStore(reg, dbs, embedder, qCache))
+func Run(ctx context.Context, reg *database.Registry, dbs map[string]*database.DB) error {
+	server := newServer(newStore(reg, dbs))
 	return server.Run(ctx, &mcpsdk.StdioTransport{})
 }

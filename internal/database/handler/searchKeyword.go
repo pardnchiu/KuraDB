@@ -8,6 +8,15 @@ import (
 	"github.com/pardnchiu/kuradb/internal/database"
 )
 
+type FileRow struct {
+	ID      int64
+	Source  string
+	Chunk   int
+	Total   int
+	Content string
+	Rank    float64
+}
+
 func SearchKeyword(db *database.DB, ctx context.Context, keywords []string, limit int) ([]FileRow, error) {
 	if db == nil || db.Read == nil {
 		return nil, fmt.Errorf("db is required")

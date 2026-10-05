@@ -17,7 +17,6 @@ import (
 	"github.com/pardnchiu/kuradb/internal/api"
 	"github.com/pardnchiu/kuradb/internal/config"
 	"github.com/pardnchiu/kuradb/internal/database"
-	"github.com/pardnchiu/kuradb/internal/openai"
 )
 
 const (
@@ -29,7 +28,7 @@ const (
 	httpShutdownTimeout   = 5 * time.Second
 )
 
-func runHTTP(ctx context.Context, configDir string, reg *database.Registry, perDBs map[string]*database.DB, embedder openai.Embedder, qcache *openai.Cache) {
+func runHTTP(ctx context.Context, configDir string, reg *database.Registry, perDBs map[string]*database.DB) {
 	cfg, err := config.Read(configDir)
 	if err != nil {
 		slog.Warn("http: config.Read",
@@ -67,7 +66,7 @@ func runHTTP(ctx context.Context, configDir string, reg *database.Registry, perD
 	}
 
 	srv := &http.Server{
-		Handler:           api.Router(reg, perDBs, embedder, qcache, cfg.Remote),
+		Handler:           api.Router(reg, perDBs, cfg.Remote),
 		ReadHeaderTimeout: httpReadHeaderTimeout,
 	}
 
