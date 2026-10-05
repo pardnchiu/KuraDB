@@ -14,41 +14,40 @@
 
 ***
 
-> A Go read-only RAG database with drop-in auto-indexing, parallel keyword and semantic search, and MCP tools
+> A Go read-only file database with automatic Markdown conversion, English keyword indexing, and agent retrieval tools
+
+> [!WARNING]
+> **Redesign in progress**: Download a [release](https://github.com/pardnchiu/KuraDB/releases) build instead of compiling from source for now. See the [Roadmap](#roadmap) for progress.
 
 ## Table of Contents
 
-- [Features](#features)
-- [Architecture](#architecture)
+- [Positioning](#positioning)
+- [Roadmap](#roadmap)
 - [License](#license)
 - [Author](#author)
 
-## Features
+## Positioning
 
-> `git clone https://github.com/pardnchiu/KuraDB.git && cd KuraDB && make app` · [Documentation](./doc/doc.md)
+> [!NOTE]
+> **Why no vector search**
+> - Every document has to be split into chunks and embedded, and semantic matching still falls short on precision.
+> - Vectors have to stay resident in memory, which does not scale in the long run.
+> - "Kura" (蔵) means storehouse; vector search belongs to ToriiDB. KuraDB returns to its name and focuses on storage and retrieval built for agents.
 
-- **Drop-In Indexing** — Drop files into `~/Kura_{name}` and the watcher parses PDF, DOCX, PPTX, CSV, XLSX, and plain text, queues them for embedding, and soft-deletes removed files.
-- **Parallel Keyword + Semantic Search** — Each request runs gse-tokenized keyword matching and OpenAI embedding search concurrently, returning results grouped by source file.
-- **Two-Stage Vector Retrieval** — Source-level mean vectors shortlist candidate files, then candidate chunks are scored with parallel cosine and filtered by a similarity floor.
-- **One-Way Write Boundary** — The API exposes queries only; the sole write path is watcher → parser → SQLite, and changed content invalidates stale embeddings automatically.
-- **Native MCP Tools** — `kura mcp` serves `list_rag` and `search_rag` over stdio, and `kura remote enable` exposes the same tools over HTTP at `/mcp`.
+- **Drop-In Conversion** — Files dropped into `~/Kura_{name}` are converted to Markdown and stored in SQLite with their original-language content intact.
+- **Cross-Language English Keywords** — Each section carries English keywords indexed by SQLite FTS5, so retrieval depends on neither per-language tokenization nor vectors.
+- **Agent Retrieval Tools** — `list`, `search`, and `read` let an agent browse the data, locate sections by keyword, and expand context by line range.
+- **One-Way Read-Only Boundary** — The API serves queries only; the sole write path is watcher → conversion → SQLite.
 
-## Architecture
+## Roadmap
 
-> [Full Architecture](./doc/architecture.md)
+| Phase | Scope | Status |
+|---|---|---|
+| Phase 1: Remove vector dependencies | Remove OpenAI embedding, the vector cache, semantic search, and the query cache; keep keyword search only | Done |
+| Phase 2: New storage | Store each file as one Markdown document, split it into sections by heading, page, slide, or table rows with line numbers, attach English keywords, index them in FTS5, and add HTML conversion | Planned |
+| Phase 3: Retrieval tools | Replace the MCP and HTTP interfaces with `list`, `search`, and `read`, rank search with bm25 and return line ranges, and remove gse tokenization | Planned |
 
-```mermaid
-graph TB
-    Inbox[~/Kura_name folder] --> Watcher[File Watcher]
-    Watcher --> SQLite[(Per-DB SQLite)]
-    SQLite --> Embedder[Embedding Scheduler]
-    Embedder --> OpenAI[OpenAI Embedding]
-    Embedder --> Vector[Vector Cache]
-    HTTP[HTTP API] --> Search[Shared Search Core]
-    MCP[MCP stdio / HTTP] --> Search
-    Search --> Vector
-    Search --> SQLite
-```
+Supported formats: plain text, Markdown, PDF, DOCX, PPTX, CSV/TSV, XLSX, and HTML (added in Phase 2).
 
 ## License
 
@@ -59,7 +58,7 @@ This project is licensed under the [MIT LICENSE](LICENSE).
 Just [open an issue](https://github.com/pardnchiu/KuraDB/issues/new) to share an idea.
 
 <a href="https://github.com/pardnchiu/KuraDB/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=pardnchiu/KuraDB&cache_bust=2026-09-16" alt="kuradb contributors" />
+  <img src="https://contrib.rocks/image?repo=pardnchiu/KuraDB&cache_bust=2026-10-05" alt="KuraDB contributors" />
 </a>
 
 ***
