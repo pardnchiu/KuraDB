@@ -10,11 +10,11 @@ import (
 	go_pkg_parser "github.com/pardnchiu/go-pkg/filesystem/parser"
 )
 
-const rowsPerChunk = 5
+const rowsPerChunk = 32
 
-type tabularParserFunc func(ctx context.Context, path string, offset, limit int) (string, error)
+type tableParserFn func(ctx context.Context, path string, offset, limit int) (string, error)
 
-func parseTabular(ctx context.Context, path string, fn tabularParserFunc) ([]go_pkg_parser.Chunk, error) {
+func parseTable(ctx context.Context, path string, fn tableParserFn) ([]go_pkg_parser.Chunk, error) {
 	raw, err := fn(ctx, path, 1, math.MaxInt32)
 	if err != nil {
 		return nil, err

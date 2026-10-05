@@ -79,6 +79,7 @@ func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File, db 
 				kind := "text"
 				var (
 					files []go_pkg_parser.Chunk
+					text  string
 					err   error
 					skip  bool
 				)
@@ -87,25 +88,29 @@ func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File, db 
 					skip = true
 				case ext == ".pdf":
 					kind = "pdf"
-					_, files, err = go_pkg_parser.PDF(ctx, path)
+					text, _, err = go_pkg_parser.PDF(ctx, path)
+					text = strings.ReplaceAll(text, "\f", "")
 				case ext == ".docx":
 					kind = "docx"
-					_, files, err = go_pkg_parser.Docx(ctx, path)
+					text, _, err = go_pkg_parser.Docx(ctx, path)
 				case ext == ".pptx":
 					kind = "pptx"
 					_, files, err = go_pkg_parser.PPTX(ctx, path)
 				case ext == ".csv", ext == ".tsv":
 					kind = "csv"
-					files, err = parseTabular(ctx, path, go_pkg_parser.CSV)
+					files, err = parseTable(ctx, path, go_pkg_parser.CSV)
 				case ext == ".xlsx":
 					kind = "xlsx"
-					files, err = parseTabular(ctx, path, go_pkg_parser.XLSX)
+					files, err = parseTable(ctx, path, go_pkg_parser.XLSX)
 				default:
 					if !looksLikeText(path) {
 						skip = true
 						break
 					}
-					_, files, err = go_pkg_parser.Markdown(ctx, path)
+					text, _, err = go_pkg_parser.Markdown(ctx, path)
+				}
+				if text != "" {
+					files = splitParagraphs(path, text)
 				}
 				if !skip {
 					if err != nil {

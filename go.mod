@@ -8,7 +8,6 @@ require github.com/pardnchiu/go-pkg v0.13.5
 
 require (
 	github.com/gin-gonic/gin v1.12.0
-	github.com/go-ego/gse v1.0.2
 	github.com/google/jsonschema-go v0.4.3
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/pardnchiu/go-sqlkit v0.1.0
@@ -41,7 +40,6 @@ require (
 	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
-	github.com/vcaesar/cedar v0.30.0 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	golang.org/x/arch v0.22.0 // indirect

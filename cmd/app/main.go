@@ -18,7 +18,6 @@ import (
 	"github.com/pardnchiu/kuradb/internal/database"
 	"github.com/pardnchiu/kuradb/internal/filesystem"
 	"github.com/pardnchiu/kuradb/internal/runtime"
-	"github.com/pardnchiu/kuradb/internal/segmenter"
 )
 
 const (
@@ -130,8 +129,6 @@ func runServerDaemon() {
 	}
 
 	reg := database.New(filepath.Join(configDir, "db.json"))
-
-	segmenter.New()
 
 	perDBs := make(map[string]*database.DB)
 

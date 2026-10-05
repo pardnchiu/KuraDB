@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/pardnchiu/kuradb/internal/database"
 	databaseHandler "github.com/pardnchiu/kuradb/internal/database/handler"
-	"github.com/pardnchiu/kuradb/internal/segmenter"
 )
 
 const (
@@ -34,17 +34,16 @@ func Search(ctx context.Context, dbs map[string]*database.DB, name, q, target st
 		return nil, fmt.Errorf("%w: unknown target %q", ErrInvalidArgument, target)
 	}
 
-	keywords, err := segmenter.Tokenize(q)
-	if err != nil {
-		return nil, err
+	var keywords []string
+	for word := range strings.FieldsSeq(strings.ToLower(q)) {
+		if !slices.Contains(keywords, word) {
+			keywords = append(keywords, word)
+		}
 	}
 
-	var rows []databaseHandler.FileRow
-	if len(keywords) > 0 {
-		rows, err = databaseHandler.SearchKeyword(db, ctx, keywords, limit)
-		if err != nil {
-			return nil, err
-		}
+	rows, err := databaseHandler.SearchKeyword(db, ctx, keywords, limit)
+	if err != nil {
+		return nil, err
 	}
 
 	return map[string][]Group{

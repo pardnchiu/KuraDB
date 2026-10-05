@@ -14,7 +14,6 @@ import (
 
 	"github.com/pardnchiu/kuradb/internal/database"
 	"github.com/pardnchiu/kuradb/internal/mcp"
-	"github.com/pardnchiu/kuradb/internal/segmenter"
 )
 
 func cmdMCP() {
@@ -24,8 +23,6 @@ func cmdMCP() {
 	defer cancel()
 
 	reg := database.New(filepath.Join(configDir, "db.json"))
-
-	segmenter.New()
 
 	entries, err := reg.Load()
 	if err != nil {
